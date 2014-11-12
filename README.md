@@ -12,7 +12,7 @@ This library provides an automatic (and smarter) version of the following patter
 
 ```make
 TASK1_SRCS = foo bar
-	baz bob: .sentinels/_task1.sentinel
+baz bob: .sentinels/_task1.sentinel
 
 .sentinels/_task1.sentinel: foo bar
 	touch baz bob
@@ -32,6 +32,7 @@ With this library, the example above becomes:
 ```make
 include grouplib.mk
 
+TASK1_SRCS = foo bar
 $(call group_create,task1,$(TASK1_SRCS),baz bob)
 
 $(call group,task1): $(call group_deps,task1):
