@@ -30,23 +30,20 @@
 # Grouplib.mk works with version 3.82 of Make or higher. This checker
 # enforces the version.
 
-_MVER := $(MAKE_VERSION)
-_MVER := $(subst ., ,$(_MVER))
-_MVER := $(wordlist 1,2,$(_MVER))
-_MAJOR := $(wordlist 1,1,$(_MVER))
-_MINOR := $(wordlist 2,2,$(_MVER))
+_sgMAJOR := $(wordlist 1,1,$(subst ., ,$(MAKE_VERSION)))
+_sgMINOR := $(wordlist 2,2,$(subst ., ,$(MAKE_VERSION)))
 
-_VERSION_OK := NO
-ifeq (0,$(shell test $(_MAJOR) -ge 4; echo $$?))
-_VERSION_OK := YES
+ifeq (0,$(shell test $(_sgMAJOR) -ge 4; echo $$?))
+_sgVERSION_OK := YES
 endif
-ifeq (0,$(shell test $(_MAJOR) -eq 3; echo $$?))
-ifeq (0,$(shell test $(_MINOR) -eq 82; echo $$?))
-_VERSION_OK := YES
+ifeq (0,$(shell test $(_sgMAJOR) -eq 3; echo $$?))
+ifeq (0,$(shell test $(_sgMINOR) -eq 82; echo $$?))
+_sgVERSION_OK := YES
 endif
 endif
-ifeq (NO,$(_VERSION_OK))
-$(error GNU Make version 3.82 or higher is required)
+ifneq ($(_sgVERSION_OK),YES)
+$(warning GNU Make version 3.82 or higher is required)
+$(error (version [$(_sgMAJOR).$(_sgMINOR)] detected))
 endif
 
 #------------------------------------------------------------------------#
