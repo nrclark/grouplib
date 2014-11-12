@@ -1,9 +1,10 @@
 Grouplib: A GNU Make Library for Dealing with Multi-Target Recipes
 ==================================================================
+Written by Nicholas Clark.  
+Released under the GNU Public License version 2.0.
 
-Written by Nicholas Clark on 11-November-2014.
-Released under the terms of the GNU Public License version 2.
-
+Introduction
+------------
 Grouplib is a pure GNU Make library that provides a set of user functions
 (which can be called with GNU Make's 'call' command) for managing 
 multi-target recipes.
@@ -52,53 +53,47 @@ The functions provided by Grouplib are as follows:
  
 Normal use cases:
 
-$(call group_create,groupname,group_deps,group_outputs)
+`$(call group_create,groupname,group_deps,group_outputs)`  
      Creates a target group.
  
- $(call group,groupname)
+`$(call group,groupname)`  
      Returns a handle to the target group's semaphore. Can be used
      to represent all of the group's outputs. Should be used as the sole
      target of the recipe that builds the target group.
  
- $(call group_deps,groupname)
+`$(call group_deps,groupname)`  
      Returns a list of the group's dependencies. If any of the group's
      outputs are missing, this list includes a special PHONY target that
      forces a rebuild of the target group.
 
- $(call group_finish,groupname)
+`$(call group_finish,groupname)`  
      Should be called as the last step in the target-group's recipe.
      Creates the sentinel directory if it is missing, and touches the
      target-group's sentinel.
  
  Advanced use cases:
 
- $(call group_outputs,groupname)
+`$(call group_outputs,groupname)`  
      Convenience function for accessing the outputs assigned to the
      group during group_create.
 
- $(call group_sentinel,groupname) 
+`$(call group_sentinel,groupname)`  
      Returns the name of the target-group's sentinel. Equivalent to
      $(call group groupname).
  
- $(call group_all_sentinels)
+`$(call group_all_sentinels)`  
      Returns a list of all sentinels currently being managed by
      Grouplib. Can be added to a global 'clean' list if desired.
 
- $(call group_getdir)
+`$(call group_getdir)`  
      Returns the directory currently being used by Grouplib
      to store its sentinel files. This directory is user-selectable.
 
- $(call group_setdir,dirname)
+`$(call group_setdir,dirname)`  
      Can be used to change Grouplib's sentinel directory to a
      user-specified value.
 
- $(call group_get_phonies)
+`$(call group_get_phonies)`  
      Provides a list of Grouplib's phony targets, so that they
      can be added to a .PHONY call if necessary. Note that in
      most cases, it won't be necessary to add them.
-
-#----------------------- GNU Make Version Checker ---------------------------#
-
- Version 4.0 is believed to be the oldest version of GNU make
- that will work with these extensions.
-
