@@ -106,8 +106,8 @@ _MVER := $(MAKE_VERSION)
 _MVER := $(foreach x,$(subst ., ,$(_MVER)),$(shell printf "%04d" $(x)))
 _MVER := $(wordlist 1,2,$(_MVER))
 _MVER := $(shell printf "%d.%s" $(word 1,$(_MVER)) $(word 2,$(_MVER)))
-ifeq (0,$(shell echo "$(_MVER) > 4.0" | bc))
-$(error GNU Make version 4.0 or higher is required)
+ifeq (0,$(shell echo "$(_MVER) >= 3.0082" | bc))
+$(error GNU Make version 3.82 or higher is required)
 endif
 
 #------------------------------------------------------------------------#
