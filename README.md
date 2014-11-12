@@ -58,9 +58,9 @@ The functions provided by Grouplib are as follows:
      Creates a target group.
  
 `$(call group,groupname)`  
-     Returns a handle to the target group's semaphore. Can be used
-     to represent all of the group's outputs. Should be used as the sole
-     target of the recipe that builds the target group.
+     Returns a handle to the target group's semaphore. Can be used in a
+     dependency to list represent all of the group's outputs. Should be used
+     as the sole target of the recipe that builds the target group.
  
 `$(call group_deps,groupname)`  
      Returns a list of the group's dependencies. If any of the group's
