@@ -35,7 +35,7 @@ include grouplib.mk
 TASK1_SRCS = foo bar
 $(call group_create,task1,$(TASK1_SRCS),baz bob)
 
-$(call group,task1): $(call group_deps,task1):
+$(call group,task1): $(call group_deps,task1)
 	touch baz bob
 	$(call group_finish,task1)
 
