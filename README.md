@@ -1,8 +1,3 @@
-Grouplib: A GNU Make Library for Dealing with Multi-Target Recipes
-==================================================================
-Written by Nicholas Clark.  
-Released under the GNU Public License version 2.0.
-
 Introduction
 ------------
 Grouplib is a pure GNU Make library that provides a set of user functions
@@ -35,7 +30,7 @@ build against external interference or flaky toolchains).
 With this library, the example above becomes:
  
 ```make
-include groups.mk
+include grouplib.mk
 
 $(call group_create,task1,$(TASK1_SRCS),baz bob)
 
@@ -49,9 +44,15 @@ rocklop: $(call group_outputs,task1)
 You can make as many groups as you want - this library will keep them all
 straight and keep your dependencies managed.
 
+API
+---
+
+Getting Grouplib into your Makefile is as easy as including it with include `grouplib.mk`.
+Once it's in your Makefile, you get access to all the target-group goodness.
+
 The functions provided by Grouplib are as follows:
  
-Normal use cases:
+### Normal use cases ###
 
 `$(call group_create,groupname,group_deps,group_outputs)`  
      Creates a target group.
@@ -71,7 +72,7 @@ Normal use cases:
      Creates the sentinel directory if it is missing, and touches the
      target-group's sentinel.
  
- Advanced use cases:
+### Advanced use cases ###
 
 `$(call group_outputs,groupname)`  
      Convenience function for accessing the outputs assigned to the
