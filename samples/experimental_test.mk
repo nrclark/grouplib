@@ -3,7 +3,7 @@ include ../experimental.mk
 TASK1_SRCS = foo bar
 TASK1_OUTPUTS = baz bob
 
-default: both
+default: both both2
 
 demo:
 	echo $(call sort_floats,1.11 10.11 2.11 21.11 0.11 0.01 0.1)
@@ -23,13 +23,21 @@ debug:
 	$(eval y := $(TASK1_SRCS))
 	$(eval z := $(TASK1_OUTPUTS))
 	echo $(x) [$(z): $(y)]
-	echo $(call _ssentinel,$(x)): $(if $(call _supdate_needed,$(y),$(z)),$(call _sphony,$(x)),)
-	echo $(call _supdate_needed,$(y),$(z))
-	echo $(call group_target,task1): $(call group_deps,task1)
+	echo "[$(call outdated,$(y),$(z))]"
+#echo $(call _ssentinel,$(x)): $(if $(call _supdate_needed,$(y),$(z)),$(call _sphony,$(x)),)
+#echo $(call _supdate_needed,$(y),$(z))
+#echo $(call group_target,task1): $(call group_deps,task1)
+
+both2: $(TASK1_OUTPUTS)
+	echo 'running task "both2"'
+	$(foreach x,$^,test -e $(x) &&) echo;
+	sleep 4
+	touch both2
+
 
 both: $(TASK1_OUTPUTS)
-	$(foreach x,$^,test -e $(x) &&) echo;
 	echo 'running task "both"'
+	$(foreach x,$^,test -e $(x) &&) echo;
 	sleep 4
 	touch both
 
@@ -42,7 +50,7 @@ task3: bob
 clean:
 	@rm -f $(call group_all_sentinels)
 	rm -f baz bob
-	rm -f both
+	rm -f both both2
 
 .INTERMEDIATE: $(call group_all_sentinels)
 .PHONY: _SPHONY_GLOBAL $(call group_get_phonies)

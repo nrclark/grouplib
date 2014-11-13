@@ -22,6 +22,7 @@ $(call group,task1): $(call group_deps,task1)
 both: $(TASK1_OUTPUTS)
 	$(foreach x,$^,test -e $(x) &&) echo;
 	echo 'running task "both"'
+	touch both
 
 task2: baz
 	echo 'running task "task 2", depending on task 1'
@@ -31,4 +32,5 @@ task3: bob
 
 clean:
 	rm -f baz bob
+	rm -f both
 	rm -rf $(call group_getdir)

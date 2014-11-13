@@ -46,36 +46,6 @@ $(warning GNU Make version 3.82 or higher is required)
 $(error (version [$(_sgMAJOR).$(_sgMINOR)] detected))
 endif
 
-#-------------------------- Perl Version Checker ------------------------------#
-
-ifneq (0,\
-$(strip $(lastword $(shell which perl; echo " "$$?))))
-$(error perl not detected on this system)
-endif
-
-ifneq (0,\
-$(lastword $(shell perl -WE 'use Time::HiRes qw( stat lstat )'; echo " "$$?)))
-$(error HiRes module not detected on the system installation of Perl)
-endif
-
-# This function uses Perl to get the mtime and print it. It uses a Perl to gain
-# access to the high-precision mtime that Perl provides (a standard "stat"
-# generally only shows the granularity in seconds).
- 
-_smtime_cmd = $(shell perl -WE \
-'use Time::HiRes qw( stat lstat );\
-@a = stat("$(1)");\
-print $$a[9];')
-
-# This function uses Perl to sort a list of floats.
-_ssort = $(shell perl -WE \
-'@x = ($(foreach x,$(1),$(x),));\
-@x = sort { $$a <=> $$b } @x;\
-print "@x";')
-
-# This function uses Perl to do a less-than/equal-to comparison.
-_sleq = $(shell perl -WE 'print $(1) > $(2) ? 0 : 1 ;')
-
 #------------------------------------------------------------------------------#
 
 # These variables are used internally. The sentinel storage directory
@@ -84,12 +54,33 @@ _sleq = $(shell perl -WE 'print $(1) > $(2) ? 0 : 1 ;')
 
 _SENTINEL_DIR := .
 _GROUP_LIST :=
-_SPHONY_DEFINED := NO
 
 define _snewline
 
 
 endef
+
+#---------------------------- Freshness Checker -------------------------------#
+
+# This routine is used to determine the freshness of a set of targets
+# in a sandbox environment. It is used within Grouplib to tell
+# internal targets when they need to be updated.
+#
+# It works by generating a small dummy Makefile, feeding it to Make, and
+# checking to see whether the targets are stale or not (returned via
+# the response from Make -q).
+
+_supdate_needed = $(strip $(subst 0,,$(shell \
+printf "default: $(2)\n\n" > $(_SENTINEL_DIR)/_sentinel.makefile.temp;\
+printf "$(2): $(1)\n\techo OLD\n" >> $(_SENTINEL_DIR)/_sentinel.makefile.temp;\
+MAKEFLAGS="" MFLAGS="" GNUMAKEFLAGS="" \
+$(MAKE) --no-print-directory -q \
+-f $(_SENTINEL_DIR)/_sentinel.makefile.temp 2>&1;\
+RES=$$?;\
+rm -f $(_SENTINEL_DIR)/_sentinel.makefile.temp;\
+echo $$RES;)))
+
+#------------------------------ Other Commands --------------------------------#
 
 _ssentinel = $(_SENTINEL_DIR)/_$(1).sentinel
 _sphony = _GROUP_$(1)_PHONY
@@ -98,42 +89,25 @@ _soutputs_name = _GROUP_$(1)_OUTPUTS
 _sdepends = $(value $(call _sdepends_name,$(1)))
 _soutputs = $(value $(call _soutputs_name,$(1)))
 
-_smtime = $(if $(wildcard $(1)),$(call _smtime_cmd,$(realpath $(1))),0)
-_smissing = $(strip $(foreach x,$(1),$(if $(wildcard $(x)),,$(x))))
-_snewest_mtime = \
-$(lastword $(call _ssort,$(foreach x,$(1),$(call _smtime,$(x)))))
-_soldest_mtime = \
-$(firstword $(call _ssort,$(foreach x,$(1),$(call _smtime,$(x)))))
-_sis_smaller = $(subst 0,,$(call _sleq,$(1),$(2)))
-
-_sold_target = $(if \
-$(call _sis_smaller,$(call _soldest_mtime,$(2)),$(call _snewest_mtime,$(1))),\
-OLD,)
-
-_supdate_needed = \
-$(strip $(call _sold_target,$(1),$(2))$(call _smissing,$(1) $(2)))
-
 define _smkgroup_code =
 $(if $(filter $(1),$(_GROUP_LIST)),$(error group '$(1)' is already defined),)
 $(if $(3),,$(error group '$(1)' outputs not defined))
 $(if $(2),,$(warning group '$(1)' sources not defined))
 $(if $(1),,$(error group-name not provided for $(3)))
-ifeq (NO,$(_SPHONY_DEFINED))
-_SPHONY_DEFINED := YES
-_SPHONY_GLOBAL:
-
-endif
 _GROUP_LIST := $(strip $(_GROUP_LIST) $(1))
 $(call _sdepends_name,$(1)) := $(2)
 $(call _soutputs_name,$(1)) := $(3)
 
 $(3): $(call _ssentinel,$(1))
-	$(foreach x,$@,@test -e $(x)$(_snewline))
+	@$(foreach x,$(3),test -e $(x) &&) printf '';
 
-$(call _ssentinel,$(1)): $(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$(1)),)
+$(call _ssentinel,$(1)): \
+$(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$(1)),)
 	@touch $(call _ssentinel,$(1))
 
 endef
+
+#--------------------------- User-Facing Commands -----------------------------#
 
 group_create = $(eval $(call _smkgroup_code,$(1),$(2),$(3)))
 group_deps = $(call _sdepends,$(1))
@@ -147,4 +121,5 @@ group_getdir = $(_SENTINEL_DIR)
 group_setdir = $(eval _SENTINEL_DIR := $(1))
 group_get_phonies = $(foreach x,$(_GROUP_LIST),$(call _sphony,$(x)))
 group_get_sentinels = $(foreach x,$(_GROUP_LIST),$(call _ssentinel,$(x)))
-group_intermediates = $(call group_get_sentinels)
+group_intermediates = $(call group_get_sentinels) \
+$(_SENTINEL_DIR)/_sentinel.makefile.temp
