@@ -86,6 +86,11 @@ _SENTINEL_DIR := .
 _GROUP_LIST :=
 _SPHONY_DEFINED := NO
 
+define _snewline
+
+
+endef
+
 _ssentinel = $(_SENTINEL_DIR)/_$(1).sentinel
 _sphony = _GROUP_$(1)_PHONY
 _sdepends_name = _GROUP_$(1)_DEPENDS
@@ -122,7 +127,8 @@ _GROUP_LIST := $(strip $(_GROUP_LIST) $(1))
 $(call _sdepends_name,$(1)) := $(2)
 $(call _soutputs_name,$(1)) := $(3)
 
-$(3): $(call _ssentinel,$(1)) $(if $(call _supdate_needed,$(2),$(3)),_SPHONY_GLOBAL,)
+$(3): $(call _ssentinel,$(1))
+	$(foreach x,$@,@test -e $(x)$(_snewline))
 
 $(call _ssentinel,$(1)): $(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$(1)),)
 	@touch $(call _ssentinel,$(1))
@@ -130,7 +136,7 @@ $(call _ssentinel,$(1)): $(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$
 endef
 
 group_create = $(eval $(call _smkgroup_code,$(1),$(2),$(3)))
-group_deps = $(call _sdepends,$(1)) _SPHONY_GLOBAL
+group_deps = $(call _sdepends,$(1))
 group_target = $(call _sphony,$(1))
 
 group_outputs = $(call _soutputs,$(1))
