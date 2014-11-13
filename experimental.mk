@@ -116,10 +116,11 @@ group_target = $(call _sphony,$(1))
 group_outputs = $(call _soutputs,$(1))
 group_sentinel = $(call _ssentinel,$(1))
 
-group_all_sentinels = $(foreach x,$(_GROUP_LIST),$(call _ssentinel,$(x)))
-group_getdir = $(_SENTINEL_DIR)
-group_setdir = $(eval _SENTINEL_DIR := $(1))
-group_get_phonies = $(foreach x,$(_GROUP_LIST),$(call _sphony,$(x)))
-group_get_sentinels = $(foreach x,$(_GROUP_LIST),$(call _ssentinel,$(x)))
 group_intermediates = $(call group_get_sentinels) \
 $(_SENTINEL_DIR)/_sentinel.makefile.temp
+
+group_get_phonies = $(foreach x,$(_GROUP_LIST),$(call _sphony,$(x)))
+group_get_sentinels = $(foreach x,$(_GROUP_LIST),$(call _ssentinel,$(x)))
+
+group_getdir = $(_SENTINEL_DIR)
+group_setdir = $(eval _SENTINEL_DIR := $(1))

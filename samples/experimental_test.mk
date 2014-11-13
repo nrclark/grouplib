@@ -19,6 +19,7 @@ $(call group_target,task1): $(call group_deps,task1)
 #----------------------------------------------------#
 
 debug:
+	echo rm -f $(call group_intermediates)
 	$(eval x := task1)
 	$(eval y := $(TASK1_SRCS))
 	$(eval z := $(TASK1_OUTPUTS))
@@ -34,7 +35,6 @@ both2: $(TASK1_OUTPUTS)
 	sleep 4
 	touch both2
 
-
 both: $(TASK1_OUTPUTS)
 	echo 'running task "both"'
 	$(foreach x,$^,test -e $(x) &&) echo;
@@ -48,10 +48,10 @@ task3: bob
 	echo 'running task "task 3", depending on task 1'
 
 clean:
-	@rm -f $(call group_all_sentinels)
+	@rm -f $(call group_intermediates)
 	rm -f baz bob
 	rm -f both both2
 
-.INTERMEDIATE: $(call group_all_sentinels)
+.INTERMEDIATE: $(call group_intermediates)
 .PHONY: _SPHONY_GLOBAL $(call group_get_phonies)
 .SUFFIXES: 
