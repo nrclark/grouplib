@@ -55,7 +55,6 @@ frobnicate.sentinel: foo bar
 result: frobnicate.sentinel
 	cat baz bob > result
 ```
-11111111111111111111111111111111111111111111111111111111111111111111111111111111
 This approach works. It does. It works in the parallel case, and in the
 single-threaded case. Unfortunately, it has some annoying quirks:
 
@@ -76,7 +75,6 @@ Lucky for you: I figured out This One Weird Tip From a Mom and wrote it into
 a library.
 
 Now the example above can be expressed like this:
-
 ```make
 include grouplib.mk
 
@@ -89,7 +87,6 @@ $(call group_target,task1): $(call group_deps,task1)
 result: baz bob
 	cat baz bob > result
 ```
-
 Grouplib handles the creation of phonies, sentinels, and all kinds of other
 unseemly things. It also handles the deletion of all of these things, so to the
 user it should be completely transparent.
@@ -137,9 +134,9 @@ straight and keep your dependencies managed.
 
 API
 ---
-
-Getting Grouplib into your Makefile is as easy as including it with include `grouplib.mk`.
-Once it's in your Makefile, you get access to all the target-group goodness.
+Getting Grouplib into your Makefile is as easy as including it with include
+`grouplib.mk`. Once it's in your Makefile, you get access to all the 
+target-group goodness.
 
 The functions provided by Grouplib are as follows:
  
@@ -147,9 +144,13 @@ The functions provided by Grouplib are as follows:
 
 `$(call group_create,groupname,group_deps,group_outputs)`  
      Creates a target group.
- 
-`$(call group,groupname)`  
-     Returns a handle to the target group's semaphore. Can be used in a
+
+`$(call group_target,groupname)`  
+     Returns a handle to the target group's private PHONY. Should be used as the
+     target for the recipe that actually builds your files. Can also be used
+     for reference, if desired.
+     
+     Can be used in a
      dependency to list represent all of the group's outputs. Should be used
      as the sole target of the recipe that builds the target group.
  
@@ -158,11 +159,6 @@ The functions provided by Grouplib are as follows:
      outputs are missing, this list includes a special PHONY target that
      forces a rebuild of the target group.
 
-`$(call group_finish,groupname)`  
-     Should be called as the last step in the target-group's recipe.
-     Creates the sentinel directory if it is missing, and touches the
-     target-group's sentinel.
- 
 ### Advanced use cases ###
 
 `$(call group_outputs,groupname)`  
