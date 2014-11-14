@@ -29,6 +29,19 @@
 # $(call group_getdir)
 # $(call group_setdir,dirname)
 #
+# Sample use:
+#
+#     $(call group_create,frobnicate,foo bar, baz bob)
+#     $(call group_target,frobnicate): $(call group_deps, frobnicate)
+#         cat foo bar > baz
+#         touch bob
+#
+#     corral: baz bob
+#	      touch corral
+#
+#     .INTERMEDIATE: $(call group_get_intermediates)
+#     .PHONY: $(call group_get_phonies)
+#
 #------------------------ GNU Make Version Checker ----------------------------#
 
 # Grouplib.mk works with version 3.82 of Make or higher. This checker
