@@ -124,10 +124,12 @@ whether it has no dependencies and can just be a simple touch command.
 
 It's magic. Use it and love it.
 
-During the dependency evaluation of frobnicate.sentinel, a special function is called
-which uses a auto-generated (and auto-deleted) Makefile passed to a single sub-make,
-which is used to resolve rependencies and decide whether the targets need to be rebuilt.
-If they do, then the PHONY task is enabled and the build is allowed to run.
+During the dependency evaluation of frobnicate.sentinel, a special function is
+called which uses a auto-generated (and auto-deleted) Makefile passed to a
+single sub-make, which is used to resolve rependencies and decide whether the 
+targets need to be rebuilt (but not to do the building). If the groups targets
+*are* out of date, then the PHONY task is enabled and the build is allowed to
+run.
 
 You can make as many groups as you want - this library will keep them all
 straight and keep your dependencies managed.
@@ -147,9 +149,9 @@ The functions provided by Grouplib are as follows:
      other commands that operate on the group.
 
 `$(call group_target,groupname)`  
-     Returns a handle to the target group's private PHONY. Should be used as the
-     sole target for the recipe that actually builds your files. Can also be used
-     for reference, if desired.
+     Returns a handle to the target group's private PHONY. Should be used as
+     the sole target for the recipe that actually builds your files. Can also 
+     be used for reference, if desired.
 
 `$(call group_deps,groupname)`  
      Returns a list of the group's dependencies (as defined at the time of
