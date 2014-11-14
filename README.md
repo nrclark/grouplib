@@ -13,23 +13,32 @@ It's crazy to think that if you have a task ('frobnicate', for example) that
 produces multiple outputs simultaneously, GNU Make doesn't have the built-in
 ability to track all of the outputs as a group.
 
-That's where Grouplib comes in.
+That's where Grouplib comes in. It features:
+ - Makes target groups work in your parallel builds
+ - Does it using pure GNU make (with some clever tricks)
+ - Does it without leaving a bunch of .sentinel files lying around.
 
 ## The Problem ##
 
-When trying to write a rule with multiple outputs, somebody might try this as a first pass:
+When trying to write a rule with multiple outputs, somebody might try this as 
+a first pass:
 ```make
 .PHONY: default
 
 default: baz bob result
 
 baz bob: foo bar
-	frobnicate baz bob
+	frobnicate foo bar -o baz bob
 
 result: baz bob
 	cat baz bob > result
 ```
-Under recent versions of Make, it will even do what you want. *Except in the parallel case*. When running make with -j (and sometimes under other circumstances), `frobnicate baz bob` will run multiple times. That might not be a big deal if `frobnicate` is something speedy like a 'touch' command or a C compilation, but it's a big problem if `frobnicate` is a process (such as compiling an ASIC design) that can take upwards of an hour.
+Under recent versions of Make, it will even do what you want. *Except in the
+parallel case*. When running make with -j (and sometimes under other 
+circumstances), `frobnicate baz bob` will run multiple times. That might not be
+a big deal if `frobnicate` is something speedy like a 'touch' command or a C
+compilation, but it's a big problem if `frobnicate` is a process (such as
+compiling an ASIC design) that can take upwards of an hour.
 
 So the next thing that people try usually looks something like this:
 ```make
@@ -40,84 +49,89 @@ default: baz bob result
 baz bob: frobnicate.sentinel
 
 frobnicate.sentinel: foo bar
-	frobnicate baz bob
+	frobnicate foo bar -o baz bob
 	touch frobnicate.sentinel
 
 result: frobnicate.sentinel
 	cat baz bob > result
 ```
-This approach works. It does. It works in the parallel case, and in the single-threaded case. Unfortunately, it has some annoying quirks:
+11111111111111111111111111111111111111111111111111111111111111111111111111111111
+This approach works. It does. It works in the parallel case, and in the
+single-threaded case. Unfortunately, it has some annoying quirks:
 
-#) Tasks that are 'downstream' of baz and bob need to depend on frobnicate.sentinel instead of on baz and bob, if you want parallel builds to work properly. Which makes the dependency relationships in the Makefile more confusing.
-#) You wind up with .sentinel files scattered around everywhere.
-#) All of your grouped recipes need to create and manage their .sentinels.
-#) If `frobnicate` screws up and produces baz without bob (or if you manage to manually delete baz), Make won't know that it needs to be rebuilt.
+1. Tasks that are 'downstream' of baz and bob need to depend on
+frobnicate.sentinel instead of on baz and bob, if you want parallel builds to
+work properly. Which makes the dependency relationships in the Makefile more
+confusing.
+1. You wind up with .sentinel files scattered around everywhere.
+1. All of your grouped recipes need to create and manage their .sentinels.
+1. If `frobnicate` screws up and produces baz without bob (or if you manage to
+manually delete baz), Make won't know that it needs to be rebuilt.
 
 *If only there was a better way!*
 
-# Produces baz and bob automatically
-default: baz bob: foo bar
+## The Solution ##
+
+Lucky for you: I figured out This One Weird Tip From a Mom and wrote it into
+a library.
+
+Now the example above can be expressed like this:
+
+```make
+include grouplib.mk
+
+default: result
+
+$(call group_create,task1,foo bar,baz bob)
+$(call group_target,task1): $(call group_deps,task1)
+	frobnicate foo bar -o baz bob
+ 
+result: baz bob
+	cat baz bob > result
+```
+
+Grouplib handles the creation of phonies, sentinels, and all kinds of other
+unseemly things. It also handles the deletion of all of these things, so to the
+user it should be completely transparent.
+
+## How does it work? ##
+
+Grouplib works by setting up rules for you that look like this:
+```make
+
+default: result
+
+baz bob: frobnicate.sentinel
+	(test for baz and bob's existence)
+	rm -f frobnicate.sentinel
+
+frobnicate.sentinel: (conditionally depends on FROB_PHONY)
+	touch frobnicate.sentinel
+
+FROB_PHONY:
 	frobnicate foo bar
 
 result: baz bob
 	cat baz bob result
 ```
-The 
-will result 
+But it wraps all that messiness into a nice set of macros so that you (the user)
+don't need to worry about whether you missed this-or-that step in getting
+grouped outputs off the ground.
 
+The conditional dependence is key. Grouplib actually checks the sources (foo,
+bar) and the targets (baz bob) during dependency evaluation, and decides whether
+frobnicate.sentinel needs to depend on the real task (which is a phony), or
+whether it has no dependencies and can just be a simple touch command.
 
+## But seriously, how does it work? ##
 
+It's magic. Use it and love it.
 
-Grouplib is a pure GNU Make library that provides a set of user functions (which
-can be called with GNU Make's 'call' command) for managing multi-target recipes.
+During the dependency evaluation of frobnicate.sentinel, a special function is called
+which uses a auto-generated (and auto-deleted) Makefile passed to a single sub-make,
+which is used to resolve rependencies and decide whether the targets need to be rebuilt.
+If they do, then the PHONY task is enabled and the build is allowed to run.
 
-It provides an automagic implementation of the 'sentinel' design pattern, where
-.sentinel files are used to handle dependency-tracking on groups of targets that
-are generated by a single recipe.
-
-Grouplib creates, tracks, and deletes sentinels as required to keep your files
-fresh. It's parallel-safe, and doesn't even leave yourproccess.complete files 
-lying around anywhere! 
-
-It uses a couple of very clever tricks to work out group-dependencies, and wraps
-the tricks into a nice set of functions that you (the builder who doesn't want
-to worry about how to make grouped-targets work robustly) can just call!
-11111111111111111111111111111111111111111111111111111111111111111111111111111111
-
-This library provides an automatic (and smarter) version of the following pattern: asdas asd asda sda sd asd asd as das 
-
-```make
-TASK1_SRCS = foo bar
-baz bob: .sentinels/_task1.sentinel
-
-.sentinels/_task1.sentinel: foo bar
-	touch baz bob
-	touch .sentinels/_task1.sentinel
-
-rocklop: baz bob
-	touch rocklop
-```
-
-Grouplib automatically generates and tracks the sentinel file(s) for
-your target group(s), and also adds a special conditionial phony target
-that forces a rebuild if any of the files are missing (to harden your
-build against external interference or flaky toolchains).
-
-With this library, the example above becomes:
- 
-```make
-include grouplib.mk
-
-TASK1_SRCS = foo bar
-$(call group_create,task1,$(TASK1_SRCS),baz bob)
-
-$(call group,task1): $(call group_deps,task1)
-	touch baz bob
-	$(call group_finish,task1)
-
-rocklop: $(call group_outputs,task1)
-	touch rocklop
-```
 You can make as many groups as you want - this library will keep them all
 straight and keep your dependencies managed.
 
