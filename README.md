@@ -143,21 +143,17 @@ The functions provided by Grouplib are as follows:
 ### Normal use cases ###
 
 `$(call group_create,groupname,group_deps,group_outputs)`  
-     Creates a target group.
+     Creates a target group. Should be called before using group_target, or any
+     other commands that operate on the group.
 
 `$(call group_target,groupname)`  
      Returns a handle to the target group's private PHONY. Should be used as the
-     target for the recipe that actually builds your files. Can also be used
+     sole target for the recipe that actually builds your files. Can also be used
      for reference, if desired.
-     
-     Can be used in a
-     dependency to list represent all of the group's outputs. Should be used
-     as the sole target of the recipe that builds the target group.
- 
+
 `$(call group_deps,groupname)`  
-     Returns a list of the group's dependencies. If any of the group's
-     outputs are missing, this list includes a special PHONY target that
-     forces a rebuild of the target group.
+     Returns a list of the group's dependencies (as defined at the time of
+     group_create). This is provided as a convenience wrapper.
 
 ### Advanced use cases ###
 
@@ -167,21 +163,31 @@ The functions provided by Grouplib are as follows:
 
 `$(call group_sentinel,groupname)`  
      Returns the name of the target-group's sentinel. Equivalent to
-     $(call group groupname).
+     $(call group groupname). Note that sentinels are generally
+     auto-deleted. You won't normally see them.
  
 `$(call group_all_sentinels)`  
      Returns a list of all sentinels currently being managed by
      Grouplib. Can be added to a global 'clean' list if desired.
 
 `$(call group_getdir)`  
-     Returns the directory currently being used by Grouplib
-     to store its sentinel files. This directory is user-selectable.
+     Returns the directory currently being used by Grouplib to store
+     its sentinel files. By default, the storage directory is '.',
+     but it's user-selectable with group_setdir below.
 
 `$(call group_setdir,dirname)`  
      Can be used to change Grouplib's sentinel directory to a
-     user-specified value.
+     user-specified value, in case you want the temporary files
+     to live in a particular location. If you want to use this, call
+     it before using group_create.
 
 `$(call group_get_phonies)`  
-     Provides a list of Grouplib's phony targets, so that they
-     can be added to a .PHONY call if necessary. Note that in
-     most cases, it won't be necessary to add them.
+     Provides a list of Grouplib's internal phony targets, so that they
+     can be added to a .PHONY call if you want to be thorough. Note that
+     in most cases, it won't be necessary to add them.
+
+`$(call group_get_intermediates)`  
+     Provides a list of Grouplib's internal intermediate targets, so that they
+     can be added to an .INTERMEDIATE: call if you want to be thorough, and/or
+     to your 'clean' target. Note that in most cases, Grouplib will delete 
+     its own intermediates as soon as it's finished with them.
