@@ -48,10 +48,11 @@ task3: bob
 	echo 'running task "task 3", depending on task 1'
 
 clean:
-	@rm -f $(call group_intermediates)
+	@rm -f $(call group_get_intermediates)
 	rm -f baz bob
 	rm -f both both2
 
-.INTERMEDIATE: $(call group_intermediates)
+.INTERMEDIATE: $(call group_get_intermediates)
+
 .PHONY: _SPHONY_GLOBAL $(call group_get_phonies)
 .SUFFIXES: 
