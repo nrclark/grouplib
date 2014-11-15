@@ -123,14 +123,24 @@ $(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$(1)),)
 
 endef
 
+define _ssafe_call = 
+$(if \
+$(filter $(2),$(_sGROUP_LIST))\
+,\
+$(call $(1),$(2))\
+,\
+$(error group '$(2)' is not defined)\
+)
+endef
+
 #--------------------------- User-Facing Commands -----------------------------#
 
 group_create = $(eval $(call _smkgroup_code,$(1),$(2),$(3)))
-group_deps = $(call _sdepends,$(1))
-group_target = $(call _sphony,$(1))
+group_deps = $(call _ssafe_call,_sdepends,$(1))
+group_target = $(call _ssafe_call,_sphony,$(1))
 
-group_outputs = $(call _soutputs,$(1))
-group_sentinel = $(call _ssentinel,$(1))
+group_outputs = $(call _ssafe_call,_soutputs,$(1))
+group_sentinel = $(call _ssafe_call,_ssentinel,$(1))
 
 group_get_intermediates = $(call group_get_sentinels) $(call _smakefile)
 group_get_phonies = $(foreach x,$(_sGROUP_LIST),$(call _sphony,$(x)))
