@@ -159,4 +159,5 @@ At the present time, Grouplib needs write access into a temp directory to store 
 files. By default, Grouplib uses the current working directory. If you want to change that, use:
 
 `$(call set_grouplib_dir,target_directory)`
+
 after you include grouplib but before you define your first target.
