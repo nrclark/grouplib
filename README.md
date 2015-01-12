@@ -145,14 +145,14 @@ The functions provided by Grouplib are as follows:
 
 Making a group is easy. Just take a rule that you'd like to be a group rule such as:
 
-`group_outputs: group_deps
-    [recipe for group_outputs here]`
+    group_outputs: group_deps
+        [recipe for group_outputs here]
 
 and wrap the first line into a function call:
 
-`$(call group,group_outputs: group_deps)
-     [recipe for group_outputs here]`
-     
+    $(call group,group_outputs: group_deps)
+        [recipe for group_outputs here]
+
 ### Grouplib Control ###
 
 At the present time, Grouplib needs write access into a temp directory to store internally-created
