@@ -34,6 +34,27 @@ $(eval _sRESPONSE := $(shell mkdir -p $(1)))\
 $(eval $(if $(_sRESPONSE),$(error $(_sRESPONSE)),))\
 $(eval GROUPLIB_TEMPDIR := $(1))
 
+#------------------------ GNU Make Version Checker ----------------------------#
+# Grouplib.mk works with version 3.82 of Make or higher. This checker
+# enforces the version.
+
+_sgMAJOR := $(wordlist 1,1,$(subst ., ,$(MAKE_VERSION)))
+_sgMINOR := $(wordlist 2,2,$(subst ., ,$(MAKE_VERSION)))
+ifeq (0,$(shell test $(_sgMAJOR) -ge 4; echo $$?))
+_sgVERSION_OK := YES
+endif
+ifeq (0,$(shell test $(_sgMAJOR) -eq 3; echo $$?))
+ifeq (0,$(shell test $(_sgMINOR) -eq 82; echo $$?))
+_sgVERSION_OK := YES
+endif
+endif
+ifneq ($(_sgVERSION_OK),YES)
+$(warning GNU Make version 3.82 or higher is required)
+$(error (version [$(_sgMAJOR).$(_sgMINOR)] detected))
+endif
+
+#------------------------------------------------------------------------------#
+
 # Variable that holds the current group name. Note that _sGROUP will change
 # with each call to _snext_group.
 
