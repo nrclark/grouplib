@@ -1,150 +1,162 @@
-#--------------- Grouplib: GNU Make Grouped-Target Library --------------------#
+# Grouplib, version 3! Now with 50% more elegance.
+# And with 100% more unreadability.
 #
-# Version 2.0.
+# Use it like this:
 #
-# Written by Nicholas Clark on 13-November-2014.
-# Released under the terms of the GNU General Public License version 2.
+# Convert this:
 #
-# Grouplib is a pure GNU Make library that provides a set of user functions
-# (which can be called with GNU Make's 'call' command) for managing 
-# multi-target recipes. It uses auto-generated (and auto-deleted) sentinel
-# files along with a little bit of magic to provide parallel-safe grouped
-# outputs.
+#     out1 out2: in1 in2
+#         your_recipe;
 #
-# Quick Refererence
-# -----------------
+# to:
 #
-# Normal use cases:
+#     include grouplib_v3.mk
+#     
+#     $(call group, out1 out2: in1 in2)
+#          cat in1 > out1
+#          cat in2 > out2
 #
-# $(call group_create,groupname,group_deps,group_outputs)
-# $(call group_target,groupname)
-# $(call group_deps,groupname)
-# 
-# $(call group_get_intermediates)
-# $(call group_get_phonies)
+# That's it!
+# Oh - Grouplib needs to create some temporary files that it cleans up automatically.
+# By default these files are created in the current working directory ('.'). 
 #
-# Advanced use cases:
-#
-# $(call group_outputs,groupname)
-# $(call group_sentinel,groupname) 
-# $(call group_get_sentinels)
-# $(call group_getdir)
-# $(call group_setdir,dirname)
-#
-# Sample use:
-#
-#     $(call group_create,frobnicate,foo bar, baz bob)
-#     $(call group_target,frobnicate): $(call group_deps, frobnicate)
-#         cat foo bar > baz
-#         touch bob
-#
-#     corral: baz bob
-#	      touch corral
-#
-#     .INTERMEDIATE: $(call group_get_intermediates)
-#     .PHONY: $(call group_get_phonies)
-#
-#------------------------ GNU Make Version Checker ----------------------------#
+# If you would like these files to live somewhere else, use $(call set_grouplib_dir,YOUR_PATH)
+# before making your first group.
 
-# Grouplib.mk works with version 3.82 of Make or higher. This checker
-# enforces the version.
+GROUPLIB_TEMPDIR := .
 
-_sgMAJOR := $(wordlist 1,1,$(subst ., ,$(MAKE_VERSION)))
-_sgMINOR := $(wordlist 2,2,$(subst ., ,$(MAKE_VERSION)))
+# Function that sets Grouplib's operating directory. Grouplib might eventually
+# move to a directory-free system, but creates (and deletes) temporary files
+# in the mean-time.
 
-ifeq (0,$(shell test $(_sgMAJOR) -ge 4; echo $$?))
-_sgVERSION_OK := YES
-endif
-ifeq (0,$(shell test $(_sgMAJOR) -eq 3; echo $$?))
-ifeq (0,$(shell test $(_sgMINOR) -eq 82; echo $$?))
-_sgVERSION_OK := YES
-endif
-endif
-ifneq ($(_sgVERSION_OK),YES)
-$(warning GNU Make version 3.82 or higher is required)
-$(error (version [$(_sgMAJOR).$(_sgMINOR)] detected))
-endif
+set_grouplib_dir = \
+$(eval _sRESPONSE := $(shell mkdir -p $(1)))\
+$(eval $(if $(_sRESPONSE),$(error $(_sRESPONSE)),))\
+$(eval GROUPLIB_TEMPDIR := $(1))
 
-#------------------------------------------------------------------------------#
+# Variable that holds the current group name. Note that _sGROUP will change
+# with each call to _snext_group.
 
-# These variables are used internally. The sentinel storage directory
-# can also be manually set through the use of group_setdir, if the
-# default (.sentinels) isn't acceptable in your build.
+_sGROUP := _sGROUP_0000
 
-_sSENTINEL_DIR := .
-_sGROUP_LIST :=
+# Numerical macros used by _snext_group for counting from _sGROUP_0000 to
+# _sGROUP_9999. _sNUMBERS winds up containing the list 0002...9999.
 
-#---------------------------- Freshness Checker -------------------------------#
+_sCOUNTER := 0001
+_sDIGITS := 0 1 2 3 4 5 6 7 8 9
+_sNUMBERS := \
+$(foreach a,$(_sDIGITS),\
+$(foreach b,$(_sDIGITS),\
+$(foreach c,$(_sDIGITS),\
+$(foreach d,$(_sDIGITS),\
+$(a)$(b)$(c)$(d)))))
+_sNUMBERS := $(wordlist 3,99999,$(_sNUMBERS))
 
-# This routine is used to determine the freshness of a set of targets
-# in a sandbox environment. It is used within Grouplib to tell
-# internal targets when they need to be updated.
-#
-# It works by generating a small dummy Makefile, feeding it to Make, and
-# checking to see whether the targets are stale or not (returned via
-# the response from 'make -q').
+# Increments _sGROUP using the _sCOUNTER and _sNUMBERS macros from above.
+define _snext_group =
+_sGROUP := _sGROUP_$(_sCOUNTER)
+_sCOUNTER := $(word $(_sCOUNTER),$(_sNUMBERS))
+endef
 
-_supdate_needed = $(strip $(subst 0,,$(shell \
+# Macros for space, tab, and newline. Used in creating recipes.
+_sblank :=
+_sspace := $(_sblank) $(_sblank)
+_stab := $(_sblank)	$(_sblank)
+define _snewline
+
+
+endef
+
+# Name of the temporary Makefile used by _supdate_needed. Note that
+# this macro depends on _sGROUP, so it will change with each call to
+# _snext_group.
+
+_smakefile = $(GROUPLIB_TEMPDIR)/$(_sGROUP)_UMAKEFILE
+
+# Returns an empty string if the list of targets in $(2) is current
+# with respect to the list of dependencies in $(1). Under any other circumstances,
+# the returned string is non-empty.
+
+_supdate_needed = \
+$(strip $(subst 0,,$(shell \
 printf "default: $(2)\n\n" > $(call _smakefile);\
 printf "$(2): $(1)\n\techo OLD\n" >> $(call _smakefile);\
 MAKEFLAGS="" MFLAGS="" GNUMAKEFLAGS="" \
 $(MAKE) --no-print-directory -q -f $(call _smakefile) 2>&1;\
 RES=$$?;\
-rm -f $(call _smakefile);\
-echo $$RES;)))
+$(RM) $(call _smakefile);\
+printf $$RES;)))
 
-#------------------------------ Other Commands --------------------------------#
+# Used by _sremove_spaces/_srestore_spaces.
 
-_ssentinel = $(_sSENTINEL_DIR)/_$(1).sentinel
-_smakefile = $(call _ssentinel,_smakefile).mk
-_sphony = _sGROUP_$(1)_PHONY
-_sdepends_name = _sGROUP_$(1)_DEPENDS
-_soutputs_name = _sGROUP_$(1)_OUTPUTS
-_sdepends = $(value $(call _sdepends_name,$(1)))
-_soutputs = $(value $(call _soutputs_name,$(1)))
+_swordsep := @^&~!@^^@~~^!@
 
-define _smkgroup_code =
-$(if $(filter $(1),$(_sGROUP_LIST)),$(error group '$(1)' is already defined),)
-$(if $(3),,$(error group '$(1)' outputs not defined))
-$(if $(2),,$(warning group '$(1)' sources not defined))
-$(if $(1),,$(error group-name not provided for $(3)))
-_SRESULT :=  $(shell rm -f $(call _ssentinel,$(1)))
-_sGROUP_LIST := $(strip $(_sGROUP_LIST) $(1))
-$(call _sdepends_name,$(1)) := $(2)
-$(call _soutputs_name,$(1)) := $(3)
+# Removes all spaces from a list, by replacing them with the separator sequence.
 
-$(3): $(call _ssentinel,$(1))
-	@$(foreach x,$(3),test -e $(x) &&) printf '';
-	@rm -f $(call _ssentinel,$(1))
+_sremove_spaces = $(subst $(_sspace),$(_swordsep),$(1))
 
-$(call _ssentinel,$(1)): \
-$(if $(call _supdate_needed,$(2),$(3)),$(call _sphony,$(1)),)
-	@touch $(call _ssentinel,$(1))
+# Restores the spaces to a list that has had them replaced by _sremove_spaces.
 
-endef
+_srestore_spaces = $(subst $(_swordsep),$(_sspace),$(1))
 
-define _ssafe_call = 
-$(if \
-$(filter $(2),$(_sGROUP_LIST))\
-,\
-$(call $(1),$(2))\
-,\
-$(error group '$(2)' is not defined)\
-)
-endef
+# Returns a list of the targets from a string of the general form 
+# 'target1 target2: dep1 dep2'. So running
+# $(call _sget_targets,foo bar baz: input ofus) will return the list
+# input ofus.
 
-#--------------------------- User-Facing Commands -----------------------------#
+_sget_targets = \
+$(strip $(call _srestore_spaces,$(word 1,$(subst :,$(_sspace),\
+$(call _sremove_spaces,$(1))))))
 
-group_create = $(eval $(call _smkgroup_code,$(1),$(2),$(3)))
-group_deps = $(call _ssafe_call,_sdepends,$(1))
-group_target = $(call _ssafe_call,_sphony,$(1))
+# Returns a list of the dependencies from a string of the general form 
+# 'target1 target2: dep1 dep2'. So running
+# $(call _sget_targets,foo bar baz: input ofus) will return the list
+# foo bar baz.
 
-group_outputs = $(call _ssafe_call,_soutputs,$(1))
-group_sentinel = $(call _ssafe_call,_ssentinel,$(1))
+_sget_depends = \
+$(strip $(call _srestore_spaces,$(word 2,$(subst :,$(_sspace),\
+$(call _sremove_spaces,$(1))))))
 
-group_get_intermediates = $(call group_get_sentinels) $(call _smakefile)
-group_get_phonies = $(foreach x,$(_sGROUP_LIST),$(call _sphony,$(x)))
+# Macro that generates one of two recipes. If $(2) is fresh with respect
+# to $(1), the recipe generated is:
+# 
+# GROUP.sentinel:
+#     touch GROUP.sentinel
+#
+# If $(2) is stale with respect to $(1), the following recipe is generated
+# instead:
+#
+# GROUP.sentinel: GROUP_PHONY
+#     touch GROUP.sentinel
+#
+_ssentinel_recipe = $(_sGROUP).sentinel: $(if $(call _supdate_needed,$(1),$(2)),$(_sGROUP)_PHONY,)$(_snewline)$(_stab)@touch $(_sGROUP).sentinel$(_snewline)$(_snewline)
 
-group_get_sentinels = $(foreach x,$(_sGROUP_LIST),$(call _ssentinel,$(x)))
-group_getdir = $(_sSENTINEL_DIR)
-group_setdir = $(eval _sSENTINEL_DIR := $(1))
+# Macro to generate the target's actual recipe. Generated recipes are of
+# the form:
+#
+# out1 out2: GROUP.sentinel
+# 	@test -e out1 && test -e out2 && printf
+#   @rm -f GROUP.sentinel
+
+_starget_recipe = $(1): $(_sGROUP).sentinel$(_snewline)$(_stab)@$(foreach x,$(1),test -e $(x) &&) printf ''$(_snewline)$(_stab)@rm -f $(_sGROUP).sentinel$(_snewline)$(_snewline)
+
+# Function that generates all required code to create a build-group.
+# The build-group is automatically named, and the name is auto-incremented.
+# A small recipe is created for the group's targets which links them
+# to the group's internal sentinel file. 
+#
+# The sentinel recipe is then created with a conditional dependence on the group's
+# phony (depending on whether the group's targets are fresh with respect to their
+# dependencies). Finally, the group's phony recipe is delared, but not filled in.
+# This is where the macro stops, and then user's normal recipe attaches to the
+# phony.
+
+group = \
+$(eval $(call _snext_group))\
+$(eval _sTARGETS := $(call _sget_targets,$(1)))\
+$(eval _sDEPENDS := $(call _sget_depends,$(1)))\
+$(eval $(call _starget_recipe,$(_sTARGETS)))\
+$(eval $(call _ssentinel_recipe,$(_sDEPENDS),$(_sTARGETS)))\
+$(eval .INTERMEDIATE: $(call _smakefile) $(_sGROUP).sentinel$(_snewline)$(_snewline))\
+$(eval .PHONY: $(_sGROUP)_PHONY$(_snewline)$(_snewline))\
+$(_sGROUP)_PHONY: $(_sDEPENDS)
