@@ -160,4 +160,4 @@ files. By default, Grouplib uses the current working directory. If you want to c
 
 `$(call set_grouplib_dir,target_directory)`
 
-after you include grouplib but before you define your first target.
+after you include grouplib but before you define your first group-target.
