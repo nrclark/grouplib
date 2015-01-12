@@ -80,8 +80,7 @@ include grouplib.mk
 
 default: result
 
-$(call group_create,task1,foo bar,baz bob)
-$(call group_target,task1): $(call group_deps,task1)
+$(call group, baz bob: foo bar)
 	frobnicate foo bar -o baz bob
  
 result: baz bob
@@ -102,16 +101,16 @@ baz bob: frobnicate.sentinel
 	(test for baz and bob's existence)
 	rm -f frobnicate.sentinel
 
-frobnicate.sentinel: (conditionally depends on FROB_PHONY)
+frobnicate.sentinel: (conditionally depends on FROB_PHONY if baz bob are stale)
 	touch frobnicate.sentinel
 
-FROB_PHONY:
+FROB_PHONY: foo bar
 	frobnicate foo bar
 
 result: baz bob
 	cat baz bob result
 ```
-But it wraps all that messiness into a nice set of macros so that you (the user)
+But it wraps all that messiness into a macro so that you (the user)
 don't need to worry about whether you missed this-or-that step in getting
 grouped outputs off the ground.
 
@@ -144,52 +143,20 @@ The functions provided by Grouplib are as follows:
  
 ### Normal use cases ###
 
-`$(call group_create,groupname,group_deps,group_outputs)`  
-     Creates a target group. Should be called before using group_target, or any
-     other commands that operate on the group.
+Making a group is easy. Just take a rule that you'd like to be a group rule such as:
 
-`$(call group_target,groupname)`  
-     Returns a handle to the target group's private PHONY. Should be used as
-     the sole target for the recipe that actually builds your files. Can also 
-     be used for reference, if desired.
+`group_outputs: group_deps
+    [recipe for group_outputs here]`
 
-`$(call group_deps,groupname)`  
-     Returns a list of the group's dependencies (as defined at the time of
-     group_create). This is provided as a convenience wrapper.
+and wrap the first line into a function call:
 
-### Advanced use cases ###
+`$(call group,group_outputs: group_deps)
+     [recipe for group_outputs here]`
+     
+### Grouplib Control ###
 
-`$(call group_outputs,groupname)`  
-     Convenience function for accessing the outputs assigned to the
-     group during group_create.
+At the present time, Grouplib needs write access into a temp directory to store internally-created
+files. By default, Grouplib uses the current working directory. If you want to change that, use:
 
-`$(call group_sentinel,groupname)`  
-     Returns the name of the target-group's sentinel. Equivalent to
-     $(call group groupname). Note that sentinels are generally
-     auto-deleted. You won't normally see them.
- 
-`$(call group_all_sentinels)`  
-     Returns a list of all sentinels currently being managed by
-     Grouplib. Can be added to a global 'clean' list if desired.
-
-`$(call group_getdir)`  
-     Returns the directory currently being used by Grouplib to store
-     its sentinel files. By default, the storage directory is '.',
-     but it's user-selectable with group_setdir below.
-
-`$(call group_setdir,dirname)`  
-     Can be used to change Grouplib's sentinel directory to a
-     user-specified value, in case you want the temporary files
-     to live in a particular location. If you want to use this, call
-     it before using group_create.
-
-`$(call group_get_phonies)`  
-     Provides a list of Grouplib's internal phony targets, so that they
-     can be added to a .PHONY call if you want to be thorough. Note that
-     in most cases, it won't be necessary to add them.
-
-`$(call group_get_intermediates)`  
-     Provides a list of Grouplib's internal intermediate targets, so that they
-     can be added to an .INTERMEDIATE: call if you want to be thorough, and/or
-     to your 'clean' target. Note that in most cases, Grouplib will delete 
-     its own intermediates as soon as it's finished with them.
+`$(call set_grouplib_dir,target_directory)`
+after you include grouplib but before you define your first target.
