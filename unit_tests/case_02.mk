@@ -6,14 +6,14 @@ setup:
 	@fortune > foo
 	@fortune > bar
 
-$(call group_create,task1,foo bar,baz bob)
-$(call group_target,task1): $(call group_deps,task1)
+foo bar: setup
+
+$(call group,baz bob: foo bar)
 	@echo "running task 1"
 	@cat foo bar > baz
 	@cat bar foo > bob
 
-$(call group_create,task2,baz bob,res1 res2)
-$(call group_target,task2): $(call group_deps,task2)
+$(call group,res1 res2: baz bob)
 	@echo "running task 2"
 	@cat baz bob > res1
 	@fortune > res2

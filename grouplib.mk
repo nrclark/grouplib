@@ -156,10 +156,12 @@ _ssentinel_recipe = $(_sGROUP).sentinel: $(if $(call _supdate_needed,$(1),$(2)),
 # the form:
 #
 # out1 out2: GROUP.sentinel
-# 	@test -e out1 && test -e out2 && printf
+#   $(eval $(foreach x,out1 out2,$(if $(wildcard $(x)),,$(error error: $(x) was not created))))
 #   @rm -f GROUP.sentinel
 
-_starget_recipe = $(1): $(_sGROUP).sentinel$(_snewline)$(_stab)@$(foreach x,$(1),test -e $(x) &&) printf ''$(_snewline)$(_stab)@rm -f $(_sGROUP).sentinel$(_snewline)$(_snewline)
+_sD := $$
+_sassert_exists = $(foreach x,$(1),$(if $(wildcard $(x)),,$(error error: $(x) was not created)))
+_starget_recipe = $(1): $(_sGROUP).sentinel$(_snewline)$(_stab)$(_sD)(eval $(_sD)(call _sassert_exists,$(1)))$(_snewline)$(_stab)@rm -f $(_sGROUP).sentinel$(_snewline)$(_snewline)
 
 # Function that generates all required code to create a build-group.
 # The build-group is automatically named, and the name is auto-incremented.
