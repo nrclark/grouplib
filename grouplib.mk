@@ -30,138 +30,138 @@ GROUPLIB_TEMPDIR := .
 # in the mean-time.
 
 set_grouplib_dir = \
-$(eval _sRESPONSE := $(shell mkdir -p $(1)))\
-$(eval $(if $(_sRESPONSE),$(error $(_sRESPONSE)),))\
+$(eval __sg_RESPONSE := $(shell mkdir -p $(1)))\
+$(eval $(if $(__sg_RESPONSE),$(error $(__sg_RESPONSE)),))\
 $(eval GROUPLIB_TEMPDIR := $(1))
 
 #------------------------ GNU Make Version Checker ----------------------------#
 # Grouplib.mk works with version 3.82 of Make or higher. This checker
 # enforces the version.
 
-_sgMAJOR := $(wordlist 1,1,$(subst ., ,$(MAKE_VERSION)))
-_sgMINOR := $(wordlist 2,2,$(subst ., ,$(MAKE_VERSION)))
-ifeq (0,$(shell test $(_sgMAJOR) -ge 4; echo $$?))
-_sgVERSION_OK := YES
+__sg_gMAJOR := $(wordlist 1,1,$(subst ., ,$(MAKE_VERSION)))
+__sg_gMINOR := $(wordlist 2,2,$(subst ., ,$(MAKE_VERSION)))
+ifeq (0,$(shell test $(__sg_gMAJOR) -ge 4; echo $$?))
+__sg_gVERSION_OK := YES
 endif
-ifeq (0,$(shell test $(_sgMAJOR) -eq 3; echo $$?))
-ifeq (0,$(shell test $(_sgMINOR) -eq 82; echo $$?))
-_sgVERSION_OK := YES
+ifeq (0,$(shell test $(__sg_gMAJOR) -eq 3; echo $$?))
+ifeq (0,$(shell test $(__sg_gMINOR) -eq 82; echo $$?))
+__sg_gVERSION_OK := YES
 endif
 endif
-ifneq ($(_sgVERSION_OK),YES)
+ifneq ($(__sg_gVERSION_OK),YES)
 $(warning GNU Make version 3.82 or higher is required)
-$(error (version [$(_sgMAJOR).$(_sgMINOR)] detected))
+$(error (version [$(__sg_gMAJOR).$(__sg_gMINOR)] detected))
 endif
 
 #------------------------------------------------------------------------------#
 
-# Variable that holds the current group name. Note that _sGROUP will change
-# with each call to _snext_group.
+# Variable that holds the current group name. Note that __sg_GROUP will change
+# with each call to __sg_next_group.
 
-_sGROUP := _sGROUP_0000
+__sg_GROUP := __sg_GROUP_0000
 
-# Numerical macros used by _snext_group for counting from _sGROUP_0000 to
-# _sGROUP_9999. _sNUMBERS winds up containing the list 0002...9999.
+# Numerical macros used by __sg_next_group for counting from __sg_GROUP_0000 to
+# __sg_GROUP_9999. __sg_NUMBERS winds up containing the list 0002...9999.
 
-_sCOUNTER := 0001
-_sDIGITS := 0 1 2 3 4 5 6 7 8 9
-_sNUMBERS := \
-$(foreach a,$(_sDIGITS),\
-$(foreach b,$(_sDIGITS),\
-$(foreach c,$(_sDIGITS),\
-$(foreach d,$(_sDIGITS),\
+__sg_COUNTER := 0001
+__sg_DIGITS := 0 1 2 3 4 5 6 7 8 9
+__sg_NUMBERS := \
+$(foreach a,$(__sg_DIGITS),\
+$(foreach b,$(__sg_DIGITS),\
+$(foreach c,$(__sg_DIGITS),\
+$(foreach d,$(__sg_DIGITS),\
 $(a)$(b)$(c)$(d)))))
-_sNUMBERS := $(wordlist 3,99999,$(_sNUMBERS))
+__sg_NUMBERS := $(wordlist 3,99999,$(__sg_NUMBERS))
 
-# Increments _sGROUP using the _sCOUNTER and _sNUMBERS macros from above.
-define _snext_group =
-_sGROUP := _sGROUP_$(_sCOUNTER)
-_sCOUNTER := $(word $(_sCOUNTER),$(_sNUMBERS))
+# Increments __sg_GROUP using the __sg_COUNTER and __sg_NUMBERS macros from above.
+define __sg_next_group =
+__sg_GROUP := __sg_GROUP_$(__sg_COUNTER)
+__sg_COUNTER := $(word $(__sg_COUNTER),$(__sg_NUMBERS))
 endef
 
 # Macros for space, tab, and newline. Used in creating recipes.
-_sblank :=
-_sspace := $(_sblank) $(_sblank)
-_stab := $(_sblank)	$(_sblank)
-define _snewline
+__sg_blank :=
+__sg_space := $(__sg_blank) $(__sg_blank)
+__sg_tab := $(__sg_blank)	$(__sg_blank)
+__sg_dollar := $$
+define __sg_newline
 
 
 endef
 
-# Name of the temporary Makefile used by _supdate_needed. Note that
-# this macro depends on _sGROUP, so it will change with each call to
-# _snext_group.
+# Name of the temporary Makefile used by __sg_update_needed. Note that
+# this macro depends on __sg_GROUP, so it will change with each call to
+# __sg_next_group.
 
-_smakefile = $(GROUPLIB_TEMPDIR)/$(_sGROUP)_UMAKEFILE
+__sg_makefile = $(GROUPLIB_TEMPDIR)/$(__sg_GROUP)_UMAKEFILE
 
 # Returns an empty string if the list of targets in $(2) is current
 # with respect to the list of dependencies in $(1). Under any other circumstances,
 # the returned string is non-empty.
 
-_supdate_needed = \
+__sg_update_needed = \
 $(strip $(subst 0,,$(shell \
-printf "default: $(2)\n\n" > $(call _smakefile);\
-printf "$(2): $(1)\n\techo OLD\n" >> $(call _smakefile);\
+printf "default: $(2)\n\n" > $(call __sg_makefile);\
+printf "$(2): $(1)\n\techo OLD\n" >> $(call __sg_makefile);\
 MAKEFLAGS="" MFLAGS="" GNUMAKEFLAGS="" \
-$(MAKE) --no-print-directory -q -f $(call _smakefile) 2>&1;\
+$(MAKE) --no-print-directory -q -f $(call __sg_makefile) 2>&1;\
 RES=$$?;\
-$(RM) $(call _smakefile);\
+$(RM) $(call __sg_makefile);\
 printf $$RES;)))
 
-# Used by _sremove_spaces/_srestore_spaces.
+# Used by __sg_remove_spaces/__sg_restore_spaces.
 
-_swordsep := @^&~!@^^@~~^!@
+__sg_wordsep := @^&~!@^^@~~^!@
 
 # Removes all spaces from a list, by replacing them with the separator sequence.
 
-_sremove_spaces = $(subst $(_sspace),$(_swordsep),$(1))
+__sg_remove_spaces = $(subst $(__sg_space),$(__sg_wordsep),$(1))
 
-# Restores the spaces to a list that has had them replaced by _sremove_spaces.
+# Restores the spaces to a list that has had them replaced by __sg_remove_spaces.
 
-_srestore_spaces = $(subst $(_swordsep),$(_sspace),$(1))
+__sg_restore_spaces = $(subst $(__sg_wordsep),$(__sg_space),$(1))
 
 # Returns a list of the targets from a string of the general form 
 # 'target1 target2: dep1 dep2'. So running
-# $(call _sget_targets,foo bar baz: input ofus) will return the list
+# $(call __sg_get_targets,foo bar baz: input ofus) will return the list
 # input ofus.
 
-_sget_targets = \
-$(strip $(call _srestore_spaces,$(word 1,$(subst :,$(_sspace),\
-$(call _sremove_spaces,$(1))))))
+__sg_get_targets = \
+$(strip $(call __sg_restore_spaces,$(word 1,$(subst :,$(__sg_space),\
+$(call __sg_remove_spaces,$(1))))))
 
 # Returns a list of the dependencies from a string of the general form 
 # 'target1 target2: dep1 dep2'. So running
-# $(call _sget_targets,foo bar baz: input ofus) will return the list
+# $(call __sg_get_targets,foo bar baz: input ofus) will return the list
 # foo bar baz.
 
-_sget_depends = \
-$(strip $(call _srestore_spaces,$(word 2,$(subst :,$(_sspace),\
-$(call _sremove_spaces,$(1))))))
+__sg_get_depends = \
+$(strip $(call __sg_restore_spaces,$(word 2,$(subst :,$(__sg_space),\
+$(call __sg_remove_spaces,$(1))))))
 
 # Macro that generates one of two recipes. If $(2) is fresh with respect
 # to $(1), the recipe generated is:
 # 
 # GROUP.sentinel:
-#     touch GROUP.sentinel
+#     $(eval $(file >GROUP.sentinel,))
 #
 # If $(2) is stale with respect to $(1), the following recipe is generated
 # instead:
 #
 # GROUP.sentinel: GROUP_PHONY
-#     touch GROUP.sentinel
+#     $(eval $(file >GROUP.sentinel,))
 #
-_ssentinel_recipe = $(_sGROUP).sentinel: $(if $(call _supdate_needed,$(1),$(2)),$(_sGROUP)_PHONY,)$(_snewline)$(_stab)@touch $(_sGROUP).sentinel$(_snewline)$(_snewline)
+__sg_sentinel_recipe = $(__sg_GROUP).sentinel: $(if $(call __sg_update_needed,$(1),$(2)),$(__sg_GROUP)_PHONY,)$(__sg_newline)$(__sg_tab)$(__sg_dollar)(eval $(__sg_dollar)(file >$(__sg_GROUP).sentinel,))$(__sg_newline)$(__sg_newline)
 
 # Macro to generate the target's actual recipe. Generated recipes are of
 # the form:
 #
 # out1 out2: GROUP.sentinel
 #   $(eval $(foreach x,out1 out2,$(if $(wildcard $(x)),,$(error error: $(x) was not created))))
-#   @rm -f GROUP.sentinel
+#   @$(RM) GROUP.sentinel
 
-_sD := $$
-_sassert_exists = $(foreach x,$(1),$(if $(wildcard $(x)),,$(error error: $(x) was not created)))
-_starget_recipe = $(1): $(_sGROUP).sentinel$(_snewline)$(_stab)$(_sD)(eval $(_sD)(call _sassert_exists,$(1)))$(_snewline)$(_stab)@rm -f $(_sGROUP).sentinel$(_snewline)$(_snewline)
+__sg_assert_exists = $(foreach x,$(1),$(if $(wildcard $(x)),,$(error error: $(x) was not created)))
+__sg_target_recipe = $(2): $(1) $(__sg_GROUP).sentinel$(__sg_newline)$(__sg_tab)$(__sg_dollar)(eval $(__sg_dollar)(call __sg_assert_exists,$(2)))$(__sg_newline)$(__sg_tab)@$(RM) $(__sg_GROUP).sentinel$(__sg_newline)$(__sg_newline)
 
 # Function that generates all required code to create a build-group.
 # The build-group is automatically named, and the name is auto-incremented.
@@ -175,11 +175,11 @@ _starget_recipe = $(1): $(_sGROUP).sentinel$(_snewline)$(_stab)$(_sD)(eval $(_sD
 # phony.
 
 group = \
-$(eval $(call _snext_group))\
-$(eval _sTARGETS := $(call _sget_targets,$(1)))\
-$(eval _sDEPENDS := $(call _sget_depends,$(1)))\
-$(eval $(call _starget_recipe,$(_sTARGETS)))\
-$(eval $(call _ssentinel_recipe,$(_sDEPENDS),$(_sTARGETS)))\
-$(eval .INTERMEDIATE: $(call _smakefile) $(_sGROUP).sentinel$(_snewline)$(_snewline))\
-$(eval .PHONY: $(_sGROUP)_PHONY$(_snewline)$(_snewline))\
-$(_sGROUP)_PHONY: $(_sDEPENDS)
+$(eval $(call __sg_next_group))\
+$(eval __sg_TARGETS := $(call __sg_get_targets,$(1)))\
+$(eval __sg_DEPENDS := $(call __sg_get_depends,$(1)))\
+$(eval $(call __sg_target_recipe,$(__sg_DEPENDS),$(__sg_TARGETS)))\
+$(eval $(call __sg_sentinel_recipe,$(__sg_DEPENDS),$(__sg_TARGETS)))\
+$(eval .INTERMEDIATE: $(call __sg_makefile) $(__sg_GROUP).sentinel$(__sg_newline)$(__sg_newline))\
+$(eval .PHONY: $(__sg_GROUP)_PHONY$(__sg_newline)$(__sg_newline))\
+$(__sg_GROUP)_PHONY: $(__sg_DEPENDS)

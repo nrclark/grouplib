@@ -3,6 +3,8 @@ include ../grouplib.mk
 
 default: task.2.out.1
 
+$(call group,source.1 source.2: setup)
+
 setup:
 	touch source.1 source.2
 
